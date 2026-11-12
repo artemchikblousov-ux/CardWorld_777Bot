@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CardWorld</title>
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: #100d20;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+
+header {
+  padding: 25px 10px;
+  background: linear-gradient(135deg,#5425a8,#17132f);
+}
+
+h1 { color: #e3c5ff; font-size: 34px; }
+
+main {
+  padding: 18px;
+  max-width: 500px;
+  margin: auto;
+}
+
+.balance {
+  background: #292044;
+  border: 1px solid #8056bd;
+  border-radius: 16px;
+  padding: 18px;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+
+button {
+  border: 0;
+  border-radius: 12px;
+  padding: 14px;
+  background: #8549df;
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  margin: 5px;
+}
+
+input {
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #8056bd;
+  background: #211a36;
+  color: white;
+  width: 65%;
+  font-size: 16px;
+}
+
+.card {
+  display: inline-block;
+  width: 135px;
+  padding: 14px 8px;
+  margin: 7px;
+  border-radius: 14px;
+  background: linear-gradient(145deg,#45316c,#211a36);
+  border: 2px solid #9972ce;
+}
+
+.art { font-size: 48px; padding: 10px; }
+.common { border-color: #aaa; }
+.rare { border-color: #42b9ff; }
+.epic { border-color: #bd68ff; }
+.legendary { border-color: #ffd34f; }
+
+section { margin-top: 25px; }
+#message { color: #ffd66b; min-height: 25px; }
+</style>
+</head>
+
+<body>
+
+<header>
+  <h1>🃏 CARDWORLD</h1>
+  <p>ТВОЯ ВСЕЛЕННАЯ КАРТОЧЕК</p>
+</header>
+
+<main>
+
+<div class="balance">
+  🪙 Монеты: <b id="coins">100</b>
+</div>
+
+<nav>
+  <button onclick="show('home')">🏠 Главная</button>
+  <button onclick="show('collection')">🃏 Коллекция</button>
+  <button onclick="show('codes')">🎁 Коды</button>
+</nav>
+
+<div id="message"></div>
+
+<section id="home">
+  <h2>🎁 Карточный набор</h2>
+  <p>Попробуй получить редкую карточку!</p>
+
+  <div class="card">
+    <div class="art">✨</div>
+    <b>Загадочный набор</b>
+    <p>Цена: 100 🪙</p>
+  </div>
+
+  <br>
+  <button onclick="openPack()">ОТКРЫТЬ НАБОР</button>
+</section>
+
+<section id="collection" hidden>
+  <h2>📚 Моя коллекция</h2>
+  <div id="cards"></div>
+</section>
+
+<section id="codes" hidden>
+  <h2>🎟 Секретный код</h2>
+  <p>Ищи коды в моих роликах!</p>
+  <input id="code" placeholder="Введи код">
+  <button onclick="redeem()">ПОЛУЧИТЬ</button>
+</section>
+
+</main>
+
+<script>
+const initial = {
+  coins: 100,
+  cards: [],
+  usedCodes: []
+};
+
+let game;
+
+try {
+  game = JSON.parse(localStorage.getItem("cardworld")) || initial;
+} catch {
+  game = initial;
+}
+
+function save() {
+  localStorage.setItem("cardworld", JSON.stringify(game));
+  update();
+}
+
+function update() {
+  document.getElementById("coins").textContent = game.coins;
+}
+
+function show(page) {
+  ["home","collection","codes"].forEach(id => {
+    document.getElementById(id).hidden = id !== page;
+  });
+
+  document.getElementById("message").textContent = "";
+
+  if (page === "collection") renderCards();
+}
+
+const cardList = [
+  {name:"Лесной дух", emoji:"🌿", rarity:"Обычная", type:"common"},
+  {name:"Огненный волк", emoji:"🐺", rarity:"Редкая", type:"rare"},
+  {name:"Кристальный дракон", emoji:"🐉", rarity:"Эпическая", type:"epic"},
+  {name:"Золотой феникс", emoji:"🔥", rarity:"Легендарная", type:"legendary"},
+  {name:"Магический кот", emoji:"🐱", rarity:"Обычная", type:"common"},
+  {name:"Повелитель молний", emoji:"⚡", rarity:"Эпическая", type:"epic"}
+];
+
+function openPack() {
+  if (game.coins < 100) {
+    message("Недостаточно монет!");
+    return;
+  }
+
+  game.coins -= 100;
+
+  const roll = Math.random() * 100;
+
+  let rarity = roll < 60 ? "common" :
+               roll < 85 ? "rare" :
+               roll < 97 ? "epic" : "legendary";
+
+  const possible = cardList.filter(c => c.type === rarity);
+
+  const card = possible[
+    Math.floor(Math.random() * possible.length)
+  ];
+
+  game.cards.push(card);
+  save();
+
+  message("🎉 Тебе выпала карточка: " +
+          card.name + " — " + card.rarity + "!");
+}
+
+function redeem() {
+  const field = document.getElementById("code");
+
+  const code = field.value.trim().toUpperCase();
+
+  const codes = {
+    "CARDWORLD": 100,
+    "DRAGON777": 200,
+    "WELCOME": 100
+  };
+
+  if (!codes[code]) {
+    message("❌ Такого кода нет!");
+    return;
+  }
+
+  if (game.usedCodes.includes(code)) {
+    message("❌ Этот код уже использован!");
+    return;
+  }
+
+  game.coins += codes[code];
+  game.usedCodes.push(code);
+
+  save();
+
+  field.value = "";
+
+  message("🎉 Получено " + codes[code] + " монет!");
+}
+
+function renderCards() {
+  const area = document.getElementById("cards");
+
+  area.innerHTML = "";
+
+  if (!game.cards.length) {
+    area.textContent =
+      "Пока карточек нет. Открой первый набор!";
+    return;
+  }
+
+  game.cards.forEach(card => {
+    const div = document.createElement("div");
+    div.className = "card " + card.type;
+
+    const art = document.createElement("div");
+    art.className = "art";
+    art.textContent = card.emoji;
+
+    const name = document.createElement("b");
+    name.textContent = card.name;
+
+    const rarity = document.createElement("p");
+    rarity.textContent = card.rarity;
+
+    div.append(art, name, rarity);
+    area.appendChild(div);
+  });
+}
+
+function message(text) {
+  document.getElementById("message").textContent = text;
+}
+
+update();
+</script>
+
+</body>
+  </html>
